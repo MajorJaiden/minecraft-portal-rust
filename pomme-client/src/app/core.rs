@@ -2932,6 +2932,27 @@ impl AppCore {
             crate::player::is_creative(game.player.game_mode),
             held_item.as_deref(),
         );
+        let mut portal_dirty = Vec::new();
+        if input_live {
+            let portal_color = if input.key_just_pressed(winit::keyboard::KeyCode::KeyG) {
+                Some(crate::player::portal::PortalColor::Blue)
+            } else if input.key_just_pressed(winit::keyboard::KeyCode::KeyH) {
+                Some(crate::player::portal::PortalColor::Orange)
+            } else {
+                None
+            };
+            if let Some(color) = portal_color {
+                match game.interaction.target {
+                    Some(crate::player::interaction::HitResult::Block(hit)) => {
+                        match game.portals.place(color, hit, &game.chunk_store) {
+                            Ok(changed) => portal_dirty = changed,
+                            Err(message) => game.debug_feedback(message),
+                        }
+                    }
+                    _ => game.debug_feedback("Aim at a wall to place a portal"),
+                }
+            }
+        }
         let place_block = held_item
             .as_deref()
             .and_then(|name| renderer.registry().placeable_block_for_item(name));
@@ -2942,7 +2963,7 @@ impl AppCore {
             registry: renderer.registry(),
             biome_climate: &game.biome_climate,
         };
-        let dirty = game.interaction.tick_actions(
+        let mut dirty = game.interaction.tick_actions(
             input,
             &game.chunk_store,
             &connection.packet_tx,
@@ -2960,6 +2981,7 @@ impl AppCore {
             hands_empty,
             &mut effects,
         );
+        dirty.extend(portal_dirty);
         game.interaction.tick_using_item(
             held_stack.as_ref(),
             &connection.packet_tx,
@@ -2986,6 +3008,9 @@ impl AppCore {
             game.interaction.slow_due_to_using_item(),
             vehicle,
         );
+        if game.portals.tick_teleport(&mut game.player) {
+            game.debug_feedback("Portal traversal");
+        }
         let dx = game.player.position.x - game.player.prev_position.x;
         let dz = game.player.position.z - game.player.prev_position.z;
         crate::entity::update_walk_animation(

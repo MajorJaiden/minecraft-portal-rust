@@ -24,6 +24,7 @@ use crate::net::connection::ConnectionHandle;
 use crate::player::LocalPlayer;
 use crate::player::interaction::{HitResult, InteractionState};
 use crate::player::menu_click::ContainerKind;
+use crate::player::portal::PortalState;
 use crate::player::tab_list::TabList;
 use crate::renderer::chunk::buffer::column_is_near;
 use crate::renderer::chunk::mesher::{BiomeClimate, ChunkMeshData, MeshDispatcher};
@@ -123,6 +124,9 @@ pub struct GameState {
     /// player doesn't tick and sends no movement.
     pub client_loaded: bool,
     pub player: LocalPlayer,
+    /// Local-only Portal-gun prototype state. It intentionally precedes
+    /// see-through rendering and server synchronization work.
+    pub portals: PortalState,
     /// Bubble index the pop sound last played for, so each pop fires once.
     pub last_bubble_pop_sound_played: i32,
     pub biome_climate: Arc<HashMap<u32, BiomeClimate>>,
@@ -379,6 +383,7 @@ impl GameState {
             },
             block_entity_anim: BlockEntityAnimStore::default(),
             player: LocalPlayer::new(),
+            portals: PortalState::default(),
             last_bubble_pop_sound_played: 0,
             biome_climate: Arc::new(HashMap::new()),
             player_walk_pos: 0.0,
@@ -893,7 +898,7 @@ impl GameState {
 
     /// Yellow bold "[Debug]:" prefix plus a plain message, vanilla
     /// `debugFeedback`.
-    fn debug_feedback(&mut self, message: &str) {
+    pub(crate) fn debug_feedback(&mut self, message: &str) {
         use crate::ui::text::TextSpan;
         let yellow = [1.0, 1.0, 85.0 / 255.0, 1.0];
         let mut prefix = TextSpan::new("[Debug]:".into(), yellow);
