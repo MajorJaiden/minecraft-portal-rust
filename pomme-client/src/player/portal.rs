@@ -12,7 +12,7 @@ use glam::DVec3;
 use crate::entity::components::Position;
 use crate::player::LocalPlayer;
 use crate::player::interaction::BlockHitResult;
-use crate::world::block::{find_state, is_air};
+use crate::world::block::{first_state_of, is_air};
 use crate::world::chunk::ChunkStore;
 
 const PORTAL_WIDTH: i32 = 2;
@@ -29,13 +29,11 @@ pub enum PortalColor {
 
 impl PortalColor {
     fn marker_block(self) -> BlockState {
-        find_state(
-            match self {
-                Self::Blue => "blue_stained_glass",
-                Self::Orange => "orange_stained_glass",
-            },
-            &[],
-        )
+        first_state_of(match self {
+            Self::Blue => "blue_stained_glass",
+            Self::Orange => "orange_stained_glass",
+        })
+        .expect("portal marker block is present in Minecraft's block registry")
     }
 }
 
